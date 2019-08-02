@@ -87,6 +87,11 @@ dim(training);dim(testing)
 Only 56 predictors! Let's now fit a model.
 
 ## Fitting models
+I'm going to fit models using "classe" as outcome and all the other variables as
+predictors. I'll use caret function train and cross validation with 5 folders to fit
+the best model on a part of training data and after that I'll eatimate accuracy
+(and out of sample error, which is 1 - accuracy) on an other part of training data.
+
 In the next chunk of code I'll create training0 and testing0 from training and create
 my own trainControl function.
 ```{r, cache = TRUE}
