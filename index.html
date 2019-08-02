@@ -267,7 +267,7 @@ modFit1 = train(x = predictorsDF, y = training0$classe, method = &quot;gbm&quot;
                 trControl = fitControl)
 stopCluster(cl)
 registerDoSEQ()</code></pre>
-<p>Let’s see Accuracy on training0 and testing0, table on testing0 and model’s plot.</p>
+<p>Let’s see Accuracy on training0 (1 - accuracy on training0 estimates in sample error) and testing0 (1 - accuracy on testing0 estimates out of sample error), table on testing0 and model’s plot.</p>
 <pre class="r"><code>confusionMatrix(predict(modFit1), training0$classe)$overall[1]</code></pre>
 <pre><code>##  Accuracy 
 ## 0.9983985</code></pre>
@@ -321,6 +321,36 @@ confusionMatrix(predict(modFit2), training0$classe)$overall[1]</code></pre>
 <li>gbm: 0.0037383</li>
 <li>rf: 5.09770610^{-4}</li>
 </ol>
+<p>We can also estimate out of sample errors in different way - we get it from models as 1 minus average accuracy (averaged on 5-cross validation resamples):</p>
+<pre class="r"><code>confusionMatrix.train(modFit1)</code></pre>
+<pre><code>## Cross-Validated (5 fold) Confusion Matrix 
+## 
+## (entries are percentual average cell counts across resamples)
+##  
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 28.4  0.0  0.0  0.0  0.0
+##          B  0.0 19.3  0.0  0.0  0.0
+##          C  0.0  0.0 17.3  0.1  0.0
+##          D  0.0  0.0  0.1 16.2  0.1
+##          E  0.0  0.0  0.0  0.1 18.3
+##                             
+##  Accuracy (average) : 0.9958</code></pre>
+<pre class="r"><code>confusionMatrix.train(modFit2)</code></pre>
+<pre><code>## Cross-Validated (5 fold) Confusion Matrix 
+## 
+## (entries are percentual average cell counts across resamples)
+##  
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 28.4  0.0  0.0  0.0  0.0
+##          B  0.0 19.3  0.0  0.0  0.0
+##          C  0.0  0.0 17.4  0.1  0.0
+##          D  0.0  0.0  0.0 16.3  0.0
+##          E  0.0  0.0  0.0  0.0 18.4
+##                             
+##  Accuracy (average) : 0.9985</code></pre>
+<p>Here errors are very small also, a little bit smaller with rf.</p>
 <p>The results on test data set are equivalent and as I checked during submission are correct.</p>
 </div>
 

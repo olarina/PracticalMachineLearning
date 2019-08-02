@@ -155,7 +155,7 @@ modFit1 = train(x = predictorsDF, y = training0$classe, method = "gbm", verbose 
 stopCluster(cl)
 registerDoSEQ()
 ```
-Let's see Accuracy on training0 and testing0, table on testing0 and model's plot.
+Let's see Accuracy on training0 (1 - accuracy on training0 estimates in sample error) and testing0 (1 - accuracy on testing0 estimates out of sample error), table on testing0 and model's plot.
 
 ```r
 confusionMatrix(predict(modFit1), training0$classe)$overall[1]
@@ -267,5 +267,50 @@ shown a very small out of sample error on test0 data set:
 
 1. gbm: 0.0037383
 2. rf: 5.097706\times 10^{-4}
+
+We can also estimate out of sample errors in different way - we get it from models
+as 1 minus average accuracy (averaged on 5-cross validation resamples):
+
+
+```r
+confusionMatrix.train(modFit1)
+```
+
+```
+## Cross-Validated (5 fold) Confusion Matrix 
+## 
+## (entries are percentual average cell counts across resamples)
+##  
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 28.4  0.0  0.0  0.0  0.0
+##          B  0.0 19.3  0.0  0.0  0.0
+##          C  0.0  0.0 17.3  0.1  0.0
+##          D  0.0  0.0  0.1 16.2  0.1
+##          E  0.0  0.0  0.0  0.1 18.3
+##                             
+##  Accuracy (average) : 0.9958
+```
+
+```r
+confusionMatrix.train(modFit2)
+```
+
+```
+## Cross-Validated (5 fold) Confusion Matrix 
+## 
+## (entries are percentual average cell counts across resamples)
+##  
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 28.4  0.0  0.0  0.0  0.0
+##          B  0.0 19.3  0.0  0.0  0.0
+##          C  0.0  0.0 17.4  0.1  0.0
+##          D  0.0  0.0  0.0 16.3  0.0
+##          E  0.0  0.0  0.0  0.0 18.4
+##                             
+##  Accuracy (average) : 0.9985
+```
+Here errors are very small also, a little bit smaller with rf.
 
 The results on test data set are equivalent and as I checked during submission are correct.
