@@ -1,5 +1,5 @@
 ---
-title: "Practical ML course project"
+title: "Practical ML course project: Predicting of how well people do exercises"
 author: "Olga Larina"
 date: "8/2/2019"
 output: 
@@ -9,24 +9,149 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
 ```
 
-## R Markdown
+## Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, my goal will be to predict it using data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. Data provided by project on human activity recognition: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+## Getting and cleaning data
+First of all, I will load libraries and get train and test data sets    .
+```{r, cache = TRUE, message=FALSE}
+library(caret)
+library(dplyr)
+library(gbm)
+library(doParallel)
+if (!file.exists("./data"))
+    dir.create("./data")
+if (!file.exists("./data/pml-training.csv"))
+{
+    fileURL = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+    download.file(fileURL, "./data/pml-training.csv",method = "curl")
+}
+if (!file.exists("./data/pml-testing.csv"))
+{
+    fileURL = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+    download.file(fileURL, "./data/pml-testing.csv",method = "curl")
+}
+```
+Now I need to load data in R. I've done it several times and noticed that almost all
+my variables are factor variables because they include symbols "NA" and "#DIV/0!",
+which can't be converted to numeric variables. So, I'll tell R that this symbols
+are NAs.
+```{r, cache = TRUE}
+training = read.csv("./data/pml-training.csv", na.strings = c("","NA","#DIV/0!"))
+testing = read.csv("./data/pml-testing.csv", na.strings = c("","NA","#DIV/0!"))
+```
+I want to check how much data do I have.
+```{r, cache = TRUE}
+dim(training);dim(testing)
+```
+In order to fit models I should clean my data from NAs. How much NAs do I have?
+```{r}
+colNAs = colSums(is.na(training))
+colNAs[13:14]
+```
+I don't want to show all colNAs, it's quite long, but it's obvious that a lot of
+variable have more than 19000 NAs out of `r dim(training)[1]` values. I will exclude
+those variables and check NAs after that.
+```{r}
+nav = names(colNAs[colNAs > 19000])
+training = select(training, -nav)
+table(is.na(training))
+```
+No NAs! It's much better. Now, I want to remove nearZeroVar's as they don't contribute
+to a prediction.
+```{r}
+zv = nearZeroVar(training)
+training = training[, -zv]
+```
+Now, let's look at first to columns in training.
+```{r}
+training[1:3, 1:5]
+```
+X is a row number, if I use it as predictor, it will ruin my prediction. cvtd_timestamp
+is now a factor variable (not convinient, I have to convert it) and is not important. So,
+I will remove it too. In the next chunk of code I will clean training and testing - in the
+same way.
+```{r cache = TRUE}
+training = training[, -1]
+training = select(training, -cvtd_timestamp)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+testing = select(testing, -nav)
+testing = testing[, -zv]
+testing = testing[, -1]
+testing = select(testing, -cvtd_timestamp)
+dim(training);dim(testing)
+```
+Only 56 predictors! Let's now fit a model.
 
-```{r cars}
-summary(cars)
+## Fitting models
+In the next chunk of code I'll create training0 and testing0 from training and create
+my own trainControl function.
+```{r, cache = TRUE}
+inTrain = createDataPartition(y = training$classe, p = 0.7, list = F)
+training0 = training[inTrain,]
+testing0 = training[-inTrain,]
+predictorsDF = select(training0, -"classe")
+fitControl <- trainControl(method = "cv",
+                           number = 5,
+                           allowParallel = TRUE)
+```
+I'm going to try 2 types of models - Generalized Boosted Regression Model (gbm) and
+Random Forest (rf). I've tried them on my computer several tymes - and they are
+very-very time consuming. So, I will fit them in parallel.
+```{r, cache = TRUE}
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+modFit1 = train(x = predictorsDF, y = training0$classe, method = "gbm", verbose = F,
+                trControl = fitControl)
+stopCluster(cl)
+registerDoSEQ()
+```
+Let's see Accuracy on training0 and testing0, table on testing0 and model's plot.
+```{r, cache = TRUE}
+confusionMatrix(predict(modFit1), training0$classe)$overall[1]
+confusionMatrix(predict(modFit1, testing0), testing0$classe)$overall[1]
+confusionMatrix(predict(modFit1, testing0), testing0$classe)$table
+plot(modFit1)
+```
+```{r, echo = FALSE}
+acc1 = confusionMatrix(predict(modFit1, testing0), testing0$classe)$overall[1]
+err1 = 1 - acc1
+```
+Our prediction is:
+```{r, cache = TRUE}
+resPred1 = predict(modFit1, testing)
+```
+Now, to rf:
+```{r, cache = TRUE}
+cl <- makePSOCKcluster(detectCores() - 1)
+registerDoParallel(cl)
+modFit2 = train(x = predictorsDF, y =training0$classe, method = "rf", trControl = fitControl)
+stopCluster(cl)
+registerDoSEQ()
+confusionMatrix(predict(modFit2), training0$classe)$overall[1]
+confusionMatrix(predict(modFit2, testing0), testing0$classe)$overall[1]
+confusionMatrix(predict(modFit2, testing0), testing0$classe)$table
+plot(modFit2)
+resPred2 = predict(modFit2, testing)
+```
+```{r, echo = FALSE}
+acc2 = confusionMatrix(predict(modFit2, testing0), testing0$classe)$overall[1]
+err2 = 1 - acc2
+```
+Both methods gives very high accuracy, and predictions on test set are the same!
+```{r, cache = TRUE}
+resPred1 == resPred2
 ```
 
-## Including Plots
+## Conclusions
+Data from 4 accelerometers are sufficient to determine quality of exercise's performance
+in case of weight lifting exercises. I've chosen 2 very powerful algorithms and they've
+shown a very small out of sample error on test0 data set:
 
-You can also embed plots, for example:
+1. gbm: `r err1`
+2. rf: `r err2`
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+The results on test data set are equivalent and as I checked during submission are correct.
