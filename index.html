@@ -236,7 +236,7 @@ training = training[, -zv]</code></pre>
 ## 1 1  carlitos           1323084231               788290 05/12/2011 11:23
 ## 2 2  carlitos           1323084231               808298 05/12/2011 11:23
 ## 3 3  carlitos           1323084231               820366 05/12/2011 11:23</code></pre>
-<p>X is a row number, if I use it as predictor, it will ruin my prediction. cvtd_timestamp is now a factor variable (not convinient, I have to convert it) and is not important. So, I will remove it too. In the next chunk of code I will clean training and testing - in the same way.</p>
+<p>X is a row number, if I use it as predictor, it will ruin my prediction. cvtd_timestamp is now a factor variable (not convinient, I have to convert it) and is not important (it is just a date of experiment, we have it in other columns). So, I will remove it too. In the next chunk of code I will clean training and testing - in the same way.</p>
 <pre class="r"><code>training = training[, -1]
 training = select(training, -cvtd_timestamp)
 
@@ -252,7 +252,7 @@ dim(training);dim(testing)</code></pre>
 <div id="fitting-models" class="section level2">
 <h2>Fitting models</h2>
 <p>I’m going to fit models using “classe” as outcome and all the other variables as predictors. I’ll use caret function train and cross validation with 5 folders to fit the best model on a part of training data and after that I’ll eatimate accuracy (and out of sample error, which is 1 - accuracy) on an other part of training data.</p>
-<p>In the next chunk of code I’ll create training0 and testing0 from training and create my own trainControl function.</p>
+<p>In the next chunk of code I’ll create training0 and testing0 from training and create my own trainControl function - with cross validation.</p>
 <pre class="r"><code>inTrain = createDataPartition(y = training$classe, p = 0.7, list = F)
 training0 = training[inTrain,]
 testing0 = training[-inTrain,]

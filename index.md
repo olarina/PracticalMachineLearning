@@ -101,8 +101,8 @@ training[1:3, 1:5]
 ## 3 3  carlitos           1323084231               820366 05/12/2011 11:23
 ```
 X is a row number, if I use it as predictor, it will ruin my prediction. cvtd_timestamp
-is now a factor variable (not convinient, I have to convert it) and is not important. So,
-I will remove it too. In the next chunk of code I will clean training and testing - in the
+is now a factor variable (not convinient, I have to convert it) and is not important (it
+is just a date of experiment, we have it in other columns). So, I will remove it too. In the next chunk of code I will clean training and testing - in the
 same way.
 
 ```r
@@ -132,7 +132,7 @@ the best model on a part of training data and after that I'll eatimate accuracy
 (and out of sample error, which is 1 - accuracy) on an other part of training data.
 
 In the next chunk of code I'll create training0 and testing0 from training and create
-my own trainControl function.
+my own trainControl function - with cross validation.
 
 ```r
 inTrain = createDataPartition(y = training$classe, p = 0.7, list = F)
